@@ -29,6 +29,6 @@ namespace QualityDocc.Domain.Entities
         public int? IdUserDelete { get; set; }
         public DateTime? DateDelete { get; set; }
         public bool IsDeleted { get; set; } = false; // Mapea tu BIT DEFAULT 0
-        public virtual Document Document { get; set; } // Asegúrate que sea de tipo 'Document'
+        public virtual Document Document { get; set; } = null!; // Asegúrate que sea de tipo 'Document'
     }
 }

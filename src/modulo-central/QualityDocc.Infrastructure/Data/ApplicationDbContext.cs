@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using QualityDocc.Domain.Entities;
+using System.Data;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace QualityDocc.Infrastructure.Data
 {
@@ -14,6 +16,10 @@ namespace QualityDocc.Infrastructure.Data
         public DbSet<Document> Documents { get; set; } // ¡Faltaba registrar la tabla maestra!
         public DbSet<DocumentVersion> DocumentVersions { get; set; }
         public DbSet<ApprovalFlow> ApprovalFlows { get; set; }
+        public DbSet<User> Users { get; set; }
+        public DbSet<Company> Companies { get; set; }
+        public DbSet<Role> Roles { get; set; }
+        public DbSet<Category> Categories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -23,6 +29,11 @@ namespace QualityDocc.Infrastructure.Data
             modelBuilder.Entity<Document>().ToTable("Documents");
             modelBuilder.Entity<DocumentVersion>().ToTable("DocumentVersions");
             modelBuilder.Entity<ApprovalFlow>().ToTable("ApprovalFlows");
+            modelBuilder.Entity<User>().ToTable("User"); // Mapeo a la tabla [User]
+            modelBuilder.Entity<Company>().ToTable("Company");
+            modelBuilder.Entity<Role>().ToTable("Role");
+            modelBuilder.Entity<Category>().ToTable("Category");
+
 
             // Configurar relación: Un Documento tiene muchas Versiones
             modelBuilder.Entity<QualityDocc.Domain.Entities.DocumentVersion>(entity =>

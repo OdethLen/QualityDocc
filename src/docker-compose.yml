@@ -1,16 +1,36 @@
 version: '3.8'
 
 services:
+  # Tu parte: El cerebro del sistema
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: QualityDoc_SQLServer
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=YourStrong@Password2026
+      - MSSQL_SA_PASSWORD=Document2026!
     ports:
-      - "14333:14333"
+      - "1440:1433"
     volumes:
       - mssql_data:/var/opt/mssql
 
+  admin-net:
+    build: . 
+    ports:
+      - "8080:80"
+    volumes:
+      - uploads_shared:/app/wwwroot/uploads # El "hueco" donde .NET dejará archivos
+
+  # El "hueco" para tus compañeros (no necesitas programar nada aquí)
+  portal-php:
+    image: php:8.2-apache
+    volumes:
+      - uploads_shared:/var/www/html/uploads # Aquí ellos leerán tus archivos
+
+  indexador-node:
+    image: node:18
+    volumes:
+      - uploads_shared:/app/docs # Aquí ellos leerán tus archivos
+
 volumes:
   mssql_data:
+  uploads_shared: # Este es el volumen compartido que tú gestionas
