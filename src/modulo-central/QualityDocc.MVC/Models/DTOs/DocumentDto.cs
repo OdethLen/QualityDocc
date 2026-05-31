@@ -1,4 +1,6 @@
-﻿namespace QualityDocc.MVC.Models.DTOs
+﻿using QualityDocc.Domain.Entities; // Asegúrate de importar el namespace
+
+namespace QualityDocc.MVC.Models.DTOs
 {
     public class DocumentDto
     {
@@ -6,7 +8,10 @@
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string VersionNumber { get; set; } = "0.1";
-        public string CurrentStatus { get; set; } = "Borrador";
+
+        // CAMBIO AQUÍ: Ahora usamos el Enum
+        public DocumentStatus CurrentStatus { get; set; } = DocumentStatus.Borrador;
+
         public DateTime ChangeDate { get; set; } = DateTime.Now;
         public string CreatedBy { get; set; } = "Sistema";
     }

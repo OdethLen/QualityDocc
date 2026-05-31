@@ -14,5 +14,7 @@ namespace QualityDocc.Application.Interfaces
 
         // 3. Botón Aprobar: Cambiar el ciclo a "Approved" y brincar la versión a 1.0 (Notas obligatorias)
         Task<DocumentVersion> ApproveDocumentAsync(int documentId, string approvalNotes, int userId);
+        Task UpdateStatusAsync(int id, DocumentStatus newStatus);
+        Task RejectDocumentAsync(int id, string reason);
     }
 }

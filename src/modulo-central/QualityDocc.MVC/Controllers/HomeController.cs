@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using QualityDocc.Application.Interfaces;
+using QualityDocc.Domain.Entities;
 using QualityDocc.MVC.Models.DTOs;
 using System;
 using System.Collections.Generic;
@@ -28,8 +29,8 @@ namespace QualityDocc.MVC.Controllers
                     Id = 42,
                     Title = "Manual de Procedimientos de Auditoría Interna",
                     VersionNumber = "0.1",
-                    CurrentStatus = "Borrador",
-                    ChangeDate = DateTime.Now.AddMinutes(-10),
+// CORRECTO: Esto llama al Enum definido en tu clase
+                    CurrentStatus = DocumentStatus.Borrador,                    ChangeDate = DateTime.Now.AddMinutes(-10),
                     CreatedBy = "Admin"
                 },
                 new DocumentDto
@@ -37,8 +38,8 @@ namespace QualityDocc.MVC.Controllers
                     Id = 15,
                     Title = "Política de Seguridad y Control Ambiental ANSI",
                     VersionNumber = "1.0",
-                    CurrentStatus = "Aprobado",
-                    ChangeDate = DateTime.Now.AddDays(-3),
+// CORRECTO: Esto llama al Enum definido en tu clase
+                    CurrentStatus = DocumentStatus.Aprobado,                    ChangeDate = DateTime.Now.AddDays(-3),
                     CreatedBy = "Auditor Jefe"
                 }
             };

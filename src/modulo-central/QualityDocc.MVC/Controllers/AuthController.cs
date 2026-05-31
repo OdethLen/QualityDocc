@@ -29,19 +29,22 @@ namespace QualityDocc.MVC.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(string email, string password)
         {
-            // 1. Buscamos al usuario en la base de datos
+            // 1. Buscamos al usuario e INCLUIMOS el objeto Role completo
+            // Esto es vital gracias a la relación en tu User.cs
             var user = await _context.Users
+                .Include(u => u.Role) // <--- ESTO ES LO QUE FALTABA
                 .FirstOrDefaultAsync(u => u.Email == email && u.IsDeleted == false);
 
             // 2. Validamos si existe y si la contraseña coincide
             if (user != null && user.PasswordHash == password)
             {
-                // 3. Creamos la identidad usando el nombre completo para evitar conflictos
-                // Usamos System.Security.Claims.Claim para forzar al compilador a usar la clase correcta
+                // 3. Creamos la identidad incluyendo el Rol
                 var claims = new List<System.Security.Claims.Claim>
         {
-            new System.Security.Claims.Claim(ClaimTypes.Name, user.Email), // Aquí usamos Email
-            new System.Security.Claims.Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+            new System.Security.Claims.Claim(ClaimTypes.Name, user.Email),
+            new System.Security.Claims.Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            // <--- AQUÍ INYECTAMOS EL ROL
+            new System.Security.Claims.Claim(ClaimTypes.Role, user.Role.Name)
         };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -51,7 +54,6 @@ namespace QualityDocc.MVC.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
-            // Si falla, enviamos el error
             ViewBag.Error = "Usuario o contraseña incorrectos.";
             return View();
         }

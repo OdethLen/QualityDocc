@@ -1,4 +1,5 @@
-﻿@model IEnumerable<QualityDocc.MVC.Models.DTOs.DocumentDto> // Cambiar al DTO correspondiente si varía el nombre
+﻿@model IEnumerable<QualityDocc.MVC.Models.DTOs.DocumentDto>
+
 @{
     ViewData["Title"] = "Panel de Control de Documentos - QualityDoc";
 }
@@ -11,9 +12,12 @@
             <p class="text-muted mb-0" style="color: #C2B3A5 !important; font-style: italic;">Ciclo de vida normativo e integridad de versiones (SQL Server)</p>
         </div>
         <div>
-            <button class="btn px-4 py-2" style="background-color: #4A372C; color: #F5EBE1; border: 1px solid rgba(245, 235, 225, 0.3); border-radius: 8px; font-family: 'Playfair Display', serif;" data-bs-toggle="modal" data-bs-target="#newDocumentModal">
-                <i class="bi bi-file-earmark-plus-fill me-2"></i> Nuevo Documento (v0.1)
-            </button>
+            @if (User.IsInRole("Author") || User.IsInRole("Admin"))
+            {
+                <a asp-action="Create" class="btn px-4 py-2" style="background-color: #4A372C; color: #F5EBE1; border: 1px solid rgba(245, 235, 225, 0.3); border-radius: 8px; font-family: 'Playfair Display', serif;">
+                    <i class="bi bi-file-earmark-plus-fill me-2"></i> Nuevo Documento (v0.1)
+                </a>
+            }
         </div>
     </div>
 
@@ -23,7 +27,7 @@
                 <table class="table table-hover mb-0" style="color: #F5EBE1; vertical-align: middle;">
                     <thead style="background-color: #241A13; color: #C2B3A5; font-family: 'Playfair Display', serif;">
                         <tr>
-                            <th class="ps-4 py-3">Código / ID</th>
+                            <th class="ps-4 py-3">ID</th>
                             <th class="py-3">Título del Documento</th>
                             <th class="py-3 text-center">Versión Actual</th>
                             <th class="py-3 text-center">Estado</th>
@@ -32,29 +36,41 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr style="border-bottom: 1px solid rgba(245, 235, 225, 0.1);">
-                            <td class="ps-4 font-monospace" style="color: #C2B3A5;">QD-0042</td>
-                            <td class="fw-bold">Manual de Procedimientos de Auditoría Interna</td>
-                            <td class="text-center"><span class="badge px-3 py-2" style="background-color: rgba(194, 179, 165, 0.15); color: #C2B3A5; border: 1px solid rgba(194, 179, 165, 0.3);">0.1</span></td>
-                            <td class="text-center"><span class="badge bg-warning text-dark px-2 py-1.5 fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.5px;">BORRADOR</span></td>
-                            <td>Hace 10 min <small class="d-block text-muted" style="color: #C2B3A5 !important;">Por: Admin</small></td>
-                            <td class="pe-4 text-end">
-                                <div class="btn-group" role="group">
-                                    <button class="btn btn-sm btn-outline-light" title="Incrementar Minor Version (v0.2)" style="border-color: rgba(245, 235, 225, 0.2); color: #F5EBE1;"><i class="bi bi-plus-circle-fill"></i> v++</button>
-                                    <button class="btn btn-sm btn-success" title="Aprobar (Pasar a v1.0)" style="background-color: #2E5A44; border: none;" data-bs-toggle="modal" data-bs-target="#approveModal"><i class="bi bi-check-circle-fill"></i> Aprobar</button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid rgba(245, 235, 225, 0.1);">
-                            <td class="ps-4 font-monospace" style="color: #C2B3A5;">QD-0015</td>
-                            <td class="fw-bold">Política de Seguridad y Control Ambiental ANSI</td>
-                            <td class="text-center"><span class="badge px-3 py-2" style="background-color: rgba(245, 235, 225, 0.1); color: #F5EBE1; border: 1px solid #F5EBE1;">1.0</span></td>
-                            <td class="text-center"><span class="badge bg-success px-2 py-1.5 fw-semibold" style="background-color: #1b4332 !important; font-size: 0.75rem; letter-spacing: 0.5px;">APROBADO</span></td>
-                            <td>24 May 2026 <small class="d-block text-muted" style="color: #C2B3A5 !important;">Por: Auditor Jefe</small></td>
-                            <td class="pe-4 text-end">
-                                <button class="btn btn-sm btn-secondary" style="background-color: #241A13; border: 1px solid rgba(245, 235, 225, 0.2); color: #C2B3A5;" disabled><i class="bi bi-lock-fill"></i> Bloqueado</button>
-                            </td>
-                        </tr>
+                        @foreach (var item in Model)
+                        {
+                            <tr style="border-bottom: 1px solid rgba(245, 235, 225, 0.1);">
+                                <td class="ps-4 font-monospace" style="color: #C2B3A5;">QD-@item.Id</td>
+                                <td class="fw-bold">@item.Title</td>
+                                <td class="text-center">
+                                    <span class="badge px-3 py-2" style="background-color: rgba(194, 179, 165, 0.15); color: #C2B3A5; border: 1px solid rgba(194, 179, 165, 0.3);">@item.VersionNumber</span>
+                                </td>
+                                <td class="text-center">
+                                    @if (item.CurrentStatus.ToString() == "Aprobado")
+                                    {
+                                        <span class="badge bg-success px-2 py-1.5 fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.5px;">APROBADO</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark px-2 py-1.5 fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.5px;">@item.CurrentStatus.ToString().ToUpper()</span>
+                                    }
+                                </td>
+                                <td>@item.ChangeDate.ToString("dd MMM yyyy") <small class="d-block text-muted" style="color: #C2B3A5 !important;">Por: @item.CreatedBy</small></td>
+                                <td class="pe-4 text-end">
+                                    <div class="btn-group" role="group">
+                                        @if (User.IsInRole("Author") || User.IsInRole("Admin"))
+                                        {
+                                            <a asp-action="IncrementVersion" asp-route-id="@item.Id" class="btn btn-sm btn-outline-light" style="border-color: rgba(245, 235, 225, 0.2); color: #F5EBE1;"><i class="bi bi-plus-circle-fill"></i> v++</a>
+                                        }
+                                        @if ((User.IsInRole("Approver") || User.IsInRole("Admin")) && item.CurrentStatus.ToString() != "Aprobado")
+                                        {
+                                            <button type="button" class="btn btn-sm btn-success" style="background-color: #2E5A44; border: none;" data-bs-toggle="modal" data-bs-target="#approveModal" onclick="prepareApproval(@item.Id)">
+                                                <i class="bi bi-check-circle-fill"></i> Aprobar
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
                     </tbody>
                 </table>
             </div>
@@ -62,24 +78,31 @@
     </div>
 </div>
 
+<!-- Modal -->
 <div class="modal fade" id="approveModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background-color: #4A372C; color: #F5EBE1; border: 1px solid rgba(245, 235, 225, 0.3);">
+        <form asp-action="Approve" method="post" class="modal-content" style="background-color: #4A372C; color: #F5EBE1; border: 1px solid rgba(245, 235, 225, 0.3);">
+            <input type="hidden" id="documentIdToApprove" name="documentId" />
             <div class="modal-header" style="border-bottom: 1px solid rgba(245, 235, 225, 0.15);">
                 <h5 class="modal-title" style="font-family: 'Playfair Display', serif;">Aprobación Formal de Documento</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-shadow="none" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="small text-muted" style="color: #C2B3A5 !important;">Al aprobar, el estado cambiará a <strong>Aprobado</strong> y la versión se consolidará automáticamente a <strong>1.0</strong>.</p>
+                <p class="small text-muted">Al aprobar, el estado cambiará a <strong>Aprobado</strong>.</p>
                 <div class="mb-3">
-                    <label class="form-label font-monospace small" style="color: #C2B3A5;">NOTAS DE APROBACIÓN (OBLIGATORIO):</label>
-                    <textarea class="form-control" rows="3" style="background-color: #1A130E; color: white; border: 1px solid rgba(245, 235, 225, 0.2);" placeholder="Escriba los comentarios o justificación técnica de la aprobación..." required></textarea>
+                    <label class="form-label font-monospace small">NOTAS DE APROBACIÓN:</label>
+                    <textarea name="approvalNotes" class="form-control" rows="3" style="background-color: #1A130E; color: white;" required></textarea>
                 </div>
             </div>
-            <div class="modal-content-footer p-3 text-end" style="border-top: 1px solid rgba(245, 235, 225, 0.15);">
-                <button type="button" class="btn btn-sm btn-outline-light me-2" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-sm btn-success" style="background-color: #2E5A44; border: none;">Confirmar y Publicar v1.0</button>
+            <div class="modal-footer p-3">
+                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-success" style="background-color: #2E5A44;">Confirmar y Publicar</button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
+
+<script>
+    function prepareApproval(id) {
+        document.getElementById('documentIdToApprove').value = id;
+    }
+</script>

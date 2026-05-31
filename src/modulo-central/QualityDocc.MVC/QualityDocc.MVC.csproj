@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <ProjectReference Include="..\QualityDocc.Domain\QualityDocc.Domain.csproj" />
     <ProjectReference Include="..\QualityDocc.Infrastructure\QualityDocc.Infrastructure.csproj" />
     <ProjectReference Include="..\QualityDocc.Application\QualityDocc.Application.csproj" />
   </ItemGroup>

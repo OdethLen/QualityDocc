@@ -9,28 +9,30 @@ services:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=Document2026!
     ports:
-      - "1440:1433"
+      - "1441:1433"
     volumes:
       - mssql_data:/var/opt/mssql
 
   admin-net:
-    build: . 
+    build: 
+      context: ./modulo-central
+      dockerfile: Dockerfile
     ports:
       - "8080:80"
     volumes:
-      - uploads_shared:/app/wwwroot/uploads # El "hueco" donde .NET dejará archivos
+      - uploads_shared:/app/wwwroot/uploads
 
-  # El "hueco" para tus compañeros (no necesitas programar nada aquí)
+  # El "hueco" para tus compañeros
   portal-php:
     image: php:8.2-apache
     volumes:
-      - uploads_shared:/var/www/html/uploads # Aquí ellos leerán tus archivos
+      - uploads_shared:/var/www/html/uploads
 
   indexador-node:
     image: node:18
     volumes:
-      - uploads_shared:/app/docs # Aquí ellos leerán tus archivos
+      - uploads_shared:/app/docs
 
 volumes:
   mssql_data:
-  uploads_shared: # Este es el volumen compartido que tú gestionas
+  uploads_shared:
