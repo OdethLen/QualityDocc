@@ -1,23 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QualityDocc.Domain.Entities
 {
-    public class User
+    public class User : BaseEntity
     {
-        public int Id { get; set; }
-        public string Email { get; set; } = string.Empty; // <-- Nuevo campo
+        // Ya no necesitamos el Id aquí, se hereda de BaseEntity
+
+        public string Email { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
 
         // Relación con Role
         public int RoleId { get; set; }
-        public Role Role { get; set; } = null!;
+
+        [ForeignKey("RoleId")]
+        public virtual Role Role { get; set; } = null!;
 
         // Relación con Company (Nulleable para el SuperAdmin)
         public int? CompanyId { get; set; }
-        public Company? Company { get; set; }
 
+        [ForeignKey("CompanyId")]
+        public virtual Company? Company { get; set; }
+
+        // Mantenemos IsDeleted porque existe en tu tabla SQL
         public bool IsDeleted { get; set; } = false;
     }
 }

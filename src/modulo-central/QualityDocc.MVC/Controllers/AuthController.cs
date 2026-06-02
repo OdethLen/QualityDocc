@@ -31,7 +31,7 @@ namespace QualityDocc.MVC.Controllers
         {
             // 1. Buscamos al usuario e INCLUIMOS el objeto Role completo
             // Esto es vital gracias a la relación en tu User.cs
-            var user = await _context.Users
+            var user = await _context.User
                 .Include(u => u.Role) // <--- ESTO ES LO QUE FALTABA
                 .FirstOrDefaultAsync(u => u.Email == email && u.IsDeleted == false);
 

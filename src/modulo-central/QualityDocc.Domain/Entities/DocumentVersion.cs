@@ -1,34 +1,28 @@
-﻿using System;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QualityDocc.Domain.Entities
 {
-    public class DocumentVersion
+    [Table("DocumentVersion")]
+    public class DocumentVersion : BaseEntity
     {
-        // En tu script se llama 'id' en minúscula, C# lo mapea automáticamente
-        public int Id { get; set; }
-
-        // Llave foránea de tu tabla Documents
+        // 1. Relación con el Documento
         public int DocumentId { get; set; }
 
-        // Cambió a int en tu script
-        public int VersionNumber { get; set; }
+        // 2. Propiedades de la versión
+        public double VersionNumber { get; set; }
 
-        public string FileUrl { get; set; } = string.Empty;
-        public string Extension { get; set; } = string.Empty;
+        // 3. Campos que el compilador te está pidiendo (¡AQUÍ ESTABAN LOS ERRORES!)
+        public string LifecycleStatus { get; set; } = "Draft"; // Necesario para HomeController.cs
+        public bool IsDeleted { get; set; } = false;           // Necesario para ApplicationDbContext.cs
 
-        // En tu script se llama 'lifecycleStatus'
-        public string LifecycleStatus { get; set; } = "Draft";
+        // 4. Campos adicionales
+        public string? FileUrl { get; set; }
+        public string? Extension { get; set; }
+        public string? ChangeLog { get; set; }
 
-        public string ChangeLog { get; set; } = string.Empty;
-
-        // Campos de auditoría que agregaste a todas tus tablas
-        public int? IdUserCreate { get; set; }
-        public DateTime DateCreate { get; set; } = DateTime.Now;
-        public int? IdUserUpdate { get; set; }
-        public DateTime? DateUpdate { get; set; }
-        public int? IdUserDelete { get; set; }
-        public DateTime? DateDelete { get; set; }
-        public bool IsDeleted { get; set; } = false; // Mapea tu BIT DEFAULT 0
-        public virtual Document Document { get; set; } = null!; // Asegúrate que sea de tipo 'Document'
+        // Propiedad de navegación
+        [ForeignKey("DocumentId")]
+        public virtual Document Document { get; set; } = null!;
     }
 }

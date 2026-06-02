@@ -13,22 +13,22 @@ namespace QualityDocc.Infrastructure.Data
         }
 
         // Mapeo de tus entidades a conjuntos de datos (Tablas)
-        public DbSet<Document> Documents { get; set; } // ¡Faltaba registrar la tabla maestra!
-        public DbSet<DocumentVersion> DocumentVersions { get; set; }
-        public DbSet<ApprovalFlow> ApprovalFlows { get; set; }
-        public DbSet<User> Users { get; set; }
-        public DbSet<Company> Companies { get; set; }
-        public DbSet<Role> Roles { get; set; }
-        public DbSet<Category> Categories { get; set; }
+        public DbSet<Document> Document { get; set; } // ¡Faltaba registrar la tabla maestra!
+        public DbSet<DocumentVersion> DocumentVersion { get; set; }
+        public DbSet<ApprovalFlow> ApprovalFlow { get; set; }
+        public DbSet<User> User { get; set; }
+        public DbSet<Company> Company { get; set; }
+        public DbSet<Role> Role { get; set; }
+        public DbSet<Category> Category { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             // Mapeo exacto a los nombres de tus tablas en SQL Server
-            modelBuilder.Entity<Document>().ToTable("Documents");
-            modelBuilder.Entity<DocumentVersion>().ToTable("DocumentVersions");
-            modelBuilder.Entity<ApprovalFlow>().ToTable("ApprovalFlows");
+            modelBuilder.Entity<Document>().ToTable("Document");
+            modelBuilder.Entity<DocumentVersion>().ToTable("DocumentVersion");
+            modelBuilder.Entity<ApprovalFlow>().ToTable("ApprovalFlow");
             modelBuilder.Entity<User>().ToTable("User"); // Mapeo a la tabla [User]
             modelBuilder.Entity<Company>().ToTable("Company");
             modelBuilder.Entity<Role>().ToTable("Role");

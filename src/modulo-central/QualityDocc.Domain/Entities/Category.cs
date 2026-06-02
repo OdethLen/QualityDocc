@@ -1,16 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QualityDocc.Domain.Entities
 {
-    public class Category
+    public class Category : BaseEntity
     {
-        public int Id { get; set; }
+        // El Id ya lo heredas de BaseEntity, no hace falta ponerlo aquí
+
         public string Name { get; set; } = string.Empty;
 
         // Relación con Empresa
         public int CompanyId { get; set; }
-        public Company Company { get; set; } = null!;
+
+        [ForeignKey("CompanyId")]
+        public virtual Company Company { get; set; } = null!;
     }
 }

@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using QualityDocc.Application.Interfaces;
 using QualityDocc.Domain.Entities;
-using QualityDocc.MVC.Models.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using QualityDocc.Application.DTOs;
 
 namespace QualityDocc.MVC.Controllers
 {
@@ -19,31 +19,14 @@ namespace QualityDocc.MVC.Controllers
         }
 
         // Acción del Panel Principal de Control
-        public IActionResult Index()
+        // Acción del Panel Principal de Control (CONECTADO A LA BASE DE DATOS)
+        public async Task<IActionResult> Index()
         {
-            // Mantenemos tu lista simulada para que tu vista no se rompa al cargar
-            var documentos = new List<DocumentDto>
-            {
-                new DocumentDto
-                {
-                    Id = 42,
-                    Title = "Manual de Procedimientos de Auditoría Interna",
-                    VersionNumber = "0.1",
-// CORRECTO: Esto llama al Enum definido en tu clase
-                    CurrentStatus = DocumentStatus.Borrador,                    ChangeDate = DateTime.Now.AddMinutes(-10),
-                    CreatedBy = "Admin"
-                },
-                new DocumentDto
-                {
-                    Id = 15,
-                    Title = "Política de Seguridad y Control Ambiental ANSI",
-                    VersionNumber = "1.0",
-// CORRECTO: Esto llama al Enum definido en tu clase
-                    CurrentStatus = DocumentStatus.Aprobado,                    ChangeDate = DateTime.Now.AddDays(-3),
-                    CreatedBy = "Auditor Jefe"
-                }
-            };
+            // Cambiamos la lista hardcoded por la llamada real al servicio.
+            // Esto buscará en tu SQL lo que realmente existe.
+            var documentos = await _documentService.GetAllDocumentsAsync();
 
+            // Enviamos los datos reales a la vista
             return View(documentos);
         }
 

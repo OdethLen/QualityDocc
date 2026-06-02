@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using System.Collections.Generic;
 using QualityDocc.Domain.Entities;
+using QualityDocc.Application.DTOs;
 
 namespace QualityDocc.Application.Interfaces
 {
@@ -14,6 +15,8 @@ namespace QualityDocc.Application.Interfaces
 
         // 3. Botón Aprobar: Cambiar el ciclo a "Approved" y brincar la versión a 1.0 (Notas obligatorias)
         Task<DocumentVersion> ApproveDocumentAsync(int documentId, string approvalNotes, int userId);
+
+        Task<List<DocumentDto>> GetAllDocumentsAsync();
         Task UpdateStatusAsync(int id, DocumentStatus newStatus);
         Task RejectDocumentAsync(int id, string reason);
     }

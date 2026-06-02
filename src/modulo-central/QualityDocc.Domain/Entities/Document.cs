@@ -1,19 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QualityDocc.Domain.Entities
 {
-    public class Document
+    public class Document : BaseEntity
     {
-        public int Id { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public DocumentStatus CurrentStatus { get; set; } = DocumentStatus.Borrador;
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-        public bool Status { get; set; } = true; // Bit NOT NULL default 1 (para borrado lógico)
+
+        // Relaciones necesarias (Foreign Keys)
         public int AuthorId { get; set; }
-        // Relación: Un documento tiene muchas versiones históricas
+        public int CompanyId { get; set; }
+        public int CategoryId { get; set; }
+
         public string? RejectionNotes { get; set; }
-        public ICollection<DocumentVersion> Versions { get; set; } = new List<DocumentVersion>();
+
+        // Propiedades de navegación para Entity Framework
+        public virtual ICollection<DocumentVersion> Versions { get; set; } = new List<DocumentVersion>();
+
+        [ForeignKey("CompanyId")]
+        public virtual Company Company { get; set; } = null!;
+
+        [ForeignKey("CategoryId")]
+        public virtual Category Category { get; set; } = null!;
     }
 }
