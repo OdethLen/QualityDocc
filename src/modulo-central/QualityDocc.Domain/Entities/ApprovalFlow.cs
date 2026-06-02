@@ -1,22 +1,22 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace QualityDocc.Domain.Entities
 {
-    public class ApprovalFlow
+    public class ApprovalFlow : BaseEntity
     {
-        public int Id { get; set; }
 
-        // Vinculado a DocumentVersions
         public int VersionId { get; set; }
-
-        // Vinculado a Users
         public int ApproverId { get; set; }
 
         public string Comments { get; set; } = string.Empty;
-
-        // Decision (Approved, Rejected, etc.)
         public string Decision { get; set; } = string.Empty;
 
-        public DateTime DateCreate { get; set; } = DateTime.Now;
+        // Propiedades de navegación (Entity Framework las usa para hacer joins automáticamente)
+        [ForeignKey("VersionId")]
+        public virtual DocumentVersion Version { get; set; } = null!;
+
+        [ForeignKey("ApproverId")]
+        public virtual User Approver { get; set; } = null!;
     }
 }

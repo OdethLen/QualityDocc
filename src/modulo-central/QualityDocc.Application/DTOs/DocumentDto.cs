@@ -1,6 +1,6 @@
 ﻿using QualityDocc.Domain.Entities; // Asegúrate de importar el namespace
 
-namespace QualityDocc.MVC.Models.DTOs
+namespace QualityDocc.Application.DTOs
 {
     public class DocumentDto
     {

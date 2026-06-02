@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using QualityDocc.Application.Interfaces;
 using QualityDocc.Domain.Entities;
 using QualityDocc.Infrastructure.Data;
+using QualityDocc.Application.DTOs;
 
 namespace QualityDocc.Application.Services
 {
@@ -28,7 +29,7 @@ namespace QualityDocc.Application.Services
                 CurrentStatus = DocumentStatus.Borrador,
                 AuthorId = userId
             };
-            _context.Documents.Add(newDocument);
+            _context.Document.Add(newDocument);
             await _context.SaveChangesAsync(); // Guardar para obtener el Id
 
             // Ahora creamos la versión vinculada
@@ -74,7 +75,7 @@ namespace QualityDocc.Application.Services
             _context.Set<DocumentVersion>().Add(approvedVersion);
 
             // Actualizamos también el estatus del documento padre
-            var doc = await _context.Documents.FindAsync(documentId);
+            var doc = await _context.Document.FindAsync(documentId);
             if (doc != null) doc.CurrentStatus = DocumentStatus.Aprobado;
 
             await _context.SaveChangesAsync();
@@ -83,7 +84,7 @@ namespace QualityDocc.Application.Services
 
         public async Task UpdateStatusAsync(int id, DocumentStatus newStatus)
         {
-            var document = await _context.Documents.FindAsync(id);
+            var document = await _context.Document.FindAsync(id);
             if (document != null)
             {
                 document.CurrentStatus = newStatus;
@@ -93,13 +94,31 @@ namespace QualityDocc.Application.Services
 
         public async Task RejectDocumentAsync(int id, string reason)
         {
-            var document = await _context.Documents.FindAsync(id);
+            var document = await _context.Document.FindAsync(id);
             if (document != null)
             {
                 document.CurrentStatus = DocumentStatus.Rechazado;
                 document.RejectionNotes = reason;
                 await _context.SaveChangesAsync();
             }
+        }
+
+
+        public async Task<List<DocumentDto>> GetAllDocumentsAsync()
+        {
+            return await _context.Document
+                .Include(d => d.Versions) // Asegúrate de tener la relación configurada
+                .Select(d => new DocumentDto
+                {
+                    Id = d.Id,
+                    Title = d.Title,
+                    // Obtenemos la última versión disponible
+                    ChangeDate = d.Versions
+              .OrderByDescending(v => v.VersionNumber)
+              .Select(v => v.DateCreate) // Seleccionamos solo la fecha
+              .FirstOrDefault() ?? DateTime.Now, // Si es null, usa la fecha actual
+                })
+                .ToListAsync();
         }
 
         // ... Mantén IncrementMinorVersionAsync igual pero asegúrate de usar _context.Documents ...

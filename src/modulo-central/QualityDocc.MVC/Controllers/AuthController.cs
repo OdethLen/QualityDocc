@@ -31,21 +31,22 @@ namespace QualityDocc.MVC.Controllers
         {
             // 1. Buscamos al usuario e INCLUIMOS el objeto Role completo
             // Esto es vital gracias a la relación en tu User.cs
-            var user = await _context.Users
-                .Include(u => u.Role) // <--- ESTO ES LO QUE FALTABA
-                .FirstOrDefaultAsync(u => u.Email == email && u.IsDeleted == false);
+            var user = await _context.User
+                        .Include(u => u.Role)
+                        .FirstOrDefaultAsync(u => u.Email == email);
 
             // 2. Validamos si existe y si la contraseña coincide
             if (user != null && user.PasswordHash == password)
             {
                 // 3. Creamos la identidad incluyendo el Rol
+                // 3. Creamos la identidad incluyendo el Rol
                 var claims = new List<System.Security.Claims.Claim>
-        {
-            new System.Security.Claims.Claim(ClaimTypes.Name, user.Email),
-            new System.Security.Claims.Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            // <--- AQUÍ INYECTAMOS EL ROL
-            new System.Security.Claims.Claim(ClaimTypes.Role, user.Role.Name)
-        };
+                    {
+    // Usamos 'global::' para asegurarnos de que use la clase oficial de .NET
+                    new global::System.Security.Claims.Claim(ClaimTypes.Name, user.Email),
+                    new global::System.Security.Claims.Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new global::System.Security.Claims.Claim(ClaimTypes.Role, user.Role.Name)
+                       };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
@@ -64,5 +65,23 @@ namespace QualityDocc.MVC.Controllers
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction("Login");
         }
+
+
+        [HttpGet]
+        public async Task<IActionResult> TestDbConnection()
+        {
+            try
+            {
+                bool canConnect = await _context.Database.CanConnectAsync();
+                return Content(canConnect ? "¡Conexión establecida!" : "Error: No se pudo conectar.");
+            }
+            catch (Exception ex)
+            {
+                return Content($"Error crítico: {ex.Message}");
+            }
+        }
     }
+
+
+
 }
