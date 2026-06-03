@@ -26,7 +26,7 @@ namespace QualityDocc.Application.Services
             var newDocument = new Document
             {
                 Title = title,
-                CurrentStatus = DocumentStatus.Borrador,
+                CurrentStatus = DocumentStatus.Borrador.ToString(),
                 AuthorId = userId
             };
             _context.Document.Add(newDocument);
@@ -76,7 +76,7 @@ namespace QualityDocc.Application.Services
 
             // Actualizamos también el estatus del documento padre
             var doc = await _context.Document.FindAsync(documentId);
-            if (doc != null) doc.CurrentStatus = DocumentStatus.Aprobado;
+            if (doc != null) doc.CurrentStatus = DocumentStatus.Aprobado.ToString();
 
             await _context.SaveChangesAsync();
             return approvedVersion;
@@ -87,7 +87,7 @@ namespace QualityDocc.Application.Services
             var document = await _context.Document.FindAsync(id);
             if (document != null)
             {
-                document.CurrentStatus = newStatus;
+                document.CurrentStatus = newStatus.ToString();
                 await _context.SaveChangesAsync();
             }
         }
@@ -97,7 +97,7 @@ namespace QualityDocc.Application.Services
             var document = await _context.Document.FindAsync(id);
             if (document != null)
             {
-                document.CurrentStatus = DocumentStatus.Rechazado;
+                document.CurrentStatus = DocumentStatus.Rechazado.ToString();
                 document.RejectionNotes = reason;
                 await _context.SaveChangesAsync();
             }

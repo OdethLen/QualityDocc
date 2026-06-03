@@ -1,0 +1,40 @@
+﻿@model QualityDocc.Domain.Entities.Document
+
+@{
+    Layout = "~/Views/Shared/_LayoutDashboard.cshtml";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card p-4" style="background-color: #4A372C; border: 1px solid rgba(245, 235, 225, 0.15);">
+                <h2 class="text-white mb-4" style="font-family: 'Cinzel Decorative', serif;">Subir Documento</h2>
+
+                @* IMPORTANTE: Agregamos enctype="multipart/form-data" aquí *@
+                <form asp-action="Upload" method="post" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="mb-3">
+                        <label class="form-label" style="color: var(--muted-champagne);">Título</label>
+                        <input asp-for="Title" class="form-control" placeholder="Nombre del documento..." required />
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+
+                    @* Campo para seleccionar el archivo *@
+                    <div class="mb-3">
+                        <label class="form-label" style="color: var(--muted-champagne);">Archivo</label>
+                        <input type="file" name="archivo" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" style="color: var(--muted-champagne);">Descripción</label>
+                        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-luxe w-100 py-2">Guardar Documento</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

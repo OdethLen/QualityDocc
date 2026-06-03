@@ -1,0 +1,36 @@
+﻿<!-- Views/Author/Index.cshtml -->
+@{
+    Layout = "~/Views/Shared/_LayoutDashboard.cshtml";
+}
+
+<div class="card p-4">
+    <h3>Bienvenida al sistema, @ViewData["Usuario"]</h3>
+</div>
+
+<div class="container-fluid">
+    <!-- Bienvenida -->
+    <div class="card p-4 mb-4" style="background-color: var(--card-brown-light); border: none;">
+        <div class="d-flex align-items-center">
+            <div class="rounded-circle bg-light" style="width: 80px; height: 80px;"></div>
+            <div class="ms-3">
+                <h3>¡Bienvenido, Autor!</h3>
+                <p>@User.Identity.Name</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="alert" style="background-color: var(--card-brown-light); color: var(--champagne-ivory);">
+        Documentos subidos: 5 <!-- Esto vendría de tu lógica de BD -->
+    </div>
+
+    <!-- Grid de Documentos -->
+    <div class="row">
+        <!-- Ejemplo de carpeta -->
+        <div class="col-md-2 text-center">
+            <i class="bi bi-folder-fill" style="font-size: 3rem; color: var(--muted-champagne);"></i>
+            <p>Manual_V1.0</p>
+        </div>
+        <!-- Repetir según los archivos del usuario -->
+    </div>
+</div>
