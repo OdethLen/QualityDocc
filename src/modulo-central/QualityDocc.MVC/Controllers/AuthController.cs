@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Linq; //Necesario para LINQ
-using Microsoft.EntityFrameworkCore; //  Necesario para operaciones asíncronas
-using QualityDocc.Infrastructure.Data; // Tu contexto de base de datos
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using QualityDocc.Infrastructure.Data;
 
 namespace QualityDocc.MVC.Controllers
 {
@@ -14,43 +15,45 @@ namespace QualityDocc.MVC.Controllers
     {
         private readonly ApplicationDbContext _context;
 
-        // Inyección de dependencias: ASP.NET nos entrega el contexto listo
         public AuthController(ApplicationDbContext context)
         {
             _context = context;
         }
 
+        // Muestra la vista de login
         [HttpGet]
         public IActionResult Login()
         {
             return View();
         }
 
+        // Procesa el login
         [HttpPost]
         public async Task<IActionResult> Login(string email, string password)
         {
-            // 1. Buscamos al usuario e INCLUIMOS el objeto Role completo
-            // Esto es vital gracias a la relación en tu User.cs
+            // 1. Buscamos al usuario incluyendo su Rol
             var user = await _context.User
                         .Include(u => u.Role)
                         .FirstOrDefaultAsync(u => u.Email == email);
 
-            // 2. Validamos si existe y si la contraseña coincide
+            // 2. Validación simple (Ojo: En producción usa PasswordHasher)
             if (user != null && user.PasswordHash == password)
             {
-                // 3. Creamos la identidad incluyendo el Rol
-                // 3. Creamos la identidad incluyendo el Rol
-                var claims = new List<System.Security.Claims.Claim>
-                    {
-    // Usamos 'global::' para asegurarnos de que use la clase oficial de .NET
-                    new global::System.Security.Claims.Claim(ClaimTypes.Name, user.Email),
-                    new global::System.Security.Claims.Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new global::System.Security.Claims.Claim(ClaimTypes.Role, user.Role.Name)
-                       };
+                // 3. Crear las Claims (La "identidad" del usuario)
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.Name, user.Email),
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Role, user.Role.Name),
+                    new Claim("CompanyId", user.CompanyId.ToString()) // Guardamos la empresa aquí
+                };
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
+                // 4. Iniciar sesión (Crea la cookie)
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity));
 
                 return RedirectToAction("Index", "Home");
             }
@@ -59,6 +62,7 @@ namespace QualityDocc.MVC.Controllers
             return View();
         }
 
+        // Cierra la sesión
         [HttpGet]
         public async Task<IActionResult> Logout()
         {
@@ -66,7 +70,7 @@ namespace QualityDocc.MVC.Controllers
             return RedirectToAction("Login");
         }
 
-
+        // Utilidad para verificar si la BD responde
         [HttpGet]
         public async Task<IActionResult> TestDbConnection()
         {
@@ -81,7 +85,4 @@ namespace QualityDocc.MVC.Controllers
             }
         }
     }
-
-
-
 }

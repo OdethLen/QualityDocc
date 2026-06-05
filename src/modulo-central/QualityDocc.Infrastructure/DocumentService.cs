@@ -21,38 +21,35 @@ namespace QualityDocc.Application.Services
 
         // CAMBIO 2: Crear el contenedor "Documento" primero
         public async Task<DocumentVersion> CreateDocumentAsync(string title, string fileUrl, string extension, int userId)
-        {
-            // Primero creamos el documento (la "cabecera")
-            var newDocument = new Document
-            {
-                Title = title,
-                CurrentStatus = DocumentStatus.Borrador.ToString(),
-                AuthorId = userId
-            };
-            _context.Document.Add(newDocument);
-            await _context.SaveChangesAsync(); // Guardar para obtener el Id
+{
+    var newDocument = new Document
+    {
+        Title = title,
+        WorkflowState = DocumentStatus.Borrador, // Usamos esto, no LifecycleStatus
+        AuthorId = userId
+    };
+    _context.Document.Add(newDocument);
+    await _context.SaveChangesAsync();
 
-            // Ahora creamos la versión vinculada
-            var initialVersion = new DocumentVersion
-            {
-                DocumentId = newDocument.Id, // Vinculamos con el nuevo documento
-                VersionNumber = 1,
-                FileUrl = fileUrl,
-                Extension = extension,
-                LifecycleStatus = "Draft",
-                ChangeLog = "Creación inicial.",
-                IdUserCreate = userId,
-                DateCreate = DateTime.Now
-            };
+    var initialVersion = new DocumentVersion
+    {
+        DocumentId = newDocument.Id,
+        VersionNumber = 1,
+        FileUrl = fileUrl,
+        Extension = extension,
+        // ELIMINADA LA LÍNEA LifecycleStatus AQUÍ
+        ChangeLog = "Creación inicial.",
+        IdUserCreate = userId,
+        DateCreate = DateTime.Now
+    };
 
-            _context.Set<DocumentVersion>().Add(initialVersion);
-            await _context.SaveChangesAsync();
-            return initialVersion;
-        }
+    _context.Set<DocumentVersion>().Add(initialVersion);
+    await _context.SaveChangesAsync();
+    return initialVersion;
+}
 
         public async Task<DocumentVersion> ApproveDocumentAsync(int documentId, string approvalNotes, int userId)
         {
-            // CAMBIO 3: Buscar la versión actual para calcular la siguiente correctamente
             var lastVersion = await _context.Set<DocumentVersion>()
                 .Where(v => v.DocumentId == documentId)
                 .OrderByDescending(v => v.VersionNumber)
@@ -66,7 +63,7 @@ namespace QualityDocc.Application.Services
                 VersionNumber = nextVersionNumber,
                 FileUrl = lastVersion?.FileUrl ?? "URL_default",
                 Extension = lastVersion?.Extension ?? ".pdf",
-                LifecycleStatus = "Approved",
+                // ELIMINADA LA LÍNEA LifecycleStatus AQUÍ
                 ChangeLog = "APROBADO: " + approvalNotes,
                 IdUserCreate = userId,
                 DateCreate = DateTime.Now
@@ -74,9 +71,8 @@ namespace QualityDocc.Application.Services
 
             _context.Set<DocumentVersion>().Add(approvedVersion);
 
-            // Actualizamos también el estatus del documento padre
             var doc = await _context.Document.FindAsync(documentId);
-            if (doc != null) doc.CurrentStatus = DocumentStatus.Aprobado.ToString();
+            if (doc != null) doc.WorkflowState = DocumentStatus.Aprobado; // Aquí gestionas el estado
 
             await _context.SaveChangesAsync();
             return approvedVersion;
@@ -87,17 +83,19 @@ namespace QualityDocc.Application.Services
             var document = await _context.Document.FindAsync(id);
             if (document != null)
             {
-                document.CurrentStatus = newStatus.ToString();
+                // 1. Usa la propiedad real de tu modelo (ej: WorkflowState)
+                // 2. Asigna 'newStatus' directamente, sin .ToString()
+                document.WorkflowState = newStatus;
+
                 await _context.SaveChangesAsync();
             }
         }
-
         public async Task RejectDocumentAsync(int id, string reason)
         {
             var document = await _context.Document.FindAsync(id);
             if (document != null)
             {
-                document.CurrentStatus = DocumentStatus.Rechazado.ToString();
+                document.WorkflowState = DocumentStatus.Rechazado;
                 document.RejectionNotes = reason;
                 await _context.SaveChangesAsync();
             }
@@ -124,24 +122,20 @@ namespace QualityDocc.Application.Services
         // ... Mantén IncrementMinorVersionAsync igual pero asegúrate de usar _context.Documents ...
         public async Task<DocumentVersion> IncrementMinorVersionAsync(int documentId, string changeLog, int userId)
         {
-            // 1. Buscamos la versión más reciente para obtener el número de versión
             var lastVersion = await _context.Set<DocumentVersion>()
                 .Where(v => v.DocumentId == documentId)
                 .OrderByDescending(v => v.VersionNumber)
                 .FirstOrDefaultAsync();
 
-            // 2. Definimos el nuevo número (asumiendo que es una versión menor, ej: 0.1 -> 0.2)
-            // O puedes usar lógica de decimales si tu VersionNumber es double, aquí lo manejo como int+1
             var newVersionNumber = (lastVersion != null) ? lastVersion.VersionNumber + 1 : 1;
 
-            // 3. Creamos la nueva versión
             var newVersion = new DocumentVersion
             {
                 DocumentId = documentId,
                 VersionNumber = newVersionNumber,
-                FileUrl = lastVersion?.FileUrl ?? "URL_default", // Mantenemos la URL o lógica que necesites
+                FileUrl = lastVersion?.FileUrl ?? "URL_default",
                 Extension = lastVersion?.Extension ?? ".pdf",
-                LifecycleStatus = "Draft",
+                // ELIMINADA LA LÍNEA LifecycleStatus AQUÍ
                 ChangeLog = changeLog,
                 IdUserCreate = userId,
                 DateCreate = DateTime.Now
@@ -151,6 +145,20 @@ namespace QualityDocc.Application.Services
             await _context.SaveChangesAsync();
 
             return newVersion;
+        }
+
+
+        public double GetNextVersionNumber(int documentId)
+        {
+            var lastVersion = _context.DocumentVersion
+                .Where(v => v.DocumentId == documentId)
+                .OrderByDescending(v => v.VersionNumber)
+                .FirstOrDefault();
+
+            if (lastVersion == null) return 0.1;
+
+            // Incrementa y redondea a 1 decimal
+            return Math.Round(lastVersion.VersionNumber + 0.1, 1);
         }
     }
 }

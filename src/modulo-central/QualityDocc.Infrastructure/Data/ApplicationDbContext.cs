@@ -44,11 +44,6 @@ namespace QualityDocc.Infrastructure.Data
                       .OnDelete(Microsoft.EntityFrameworkCore.DeleteBehavior.Cascade);
             });
 
-            // Indicamos que los campos booleanos se comporten como BIT de SQL
-            modelBuilder.Entity<DocumentVersion>()
-                .Property(d => d.IsDeleted)
-                .HasColumnType("bit");
-
             modelBuilder.Entity<Document>()
                 .Property(d => d.Status)
                 .HasColumnType("bit")

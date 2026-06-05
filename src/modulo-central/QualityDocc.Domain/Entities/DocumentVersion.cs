@@ -12,10 +12,6 @@ namespace QualityDocc.Domain.Entities
         // 2. Propiedades de la versión
         public double VersionNumber { get; set; }
 
-        // 3. Campos que el compilador te está pidiendo (¡AQUÍ ESTABAN LOS ERRORES!)
-        public string LifecycleStatus { get; set; } = "Draft"; // Necesario para HomeController.cs
-        public bool IsDeleted { get; set; } = false;           // Necesario para ApplicationDbContext.cs
-
         // 4. Campos adicionales
         public string? FileUrl { get; set; }
         public string? Extension { get; set; }

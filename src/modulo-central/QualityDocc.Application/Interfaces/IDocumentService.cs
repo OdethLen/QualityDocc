@@ -1,7 +1,8 @@
-﻿using System.Threading.Tasks;
-using System.Collections.Generic;
-using QualityDocc.Domain.Entities;
+﻿using Microsoft.EntityFrameworkCore;
 using QualityDocc.Application.DTOs;
+using QualityDocc.Domain.Entities;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace QualityDocc.Application.Interfaces
 {
@@ -19,5 +20,8 @@ namespace QualityDocc.Application.Interfaces
         Task<List<DocumentDto>> GetAllDocumentsAsync();
         Task UpdateStatusAsync(int id, DocumentStatus newStatus);
         Task RejectDocumentAsync(int id, string reason);
+
+        // En DocumentService.cs
+        
     }
 }

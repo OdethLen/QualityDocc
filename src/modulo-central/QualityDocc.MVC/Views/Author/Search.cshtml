@@ -1,40 +1,43 @@
 ﻿@model IEnumerable<QualityDocc.Domain.Entities.Document>
 
-@{
-    Layout = "~/Views/Shared/_LayoutDashboard.cshtml";
-}
-
 <div class="container mt-4">
-    <h2 class="text-white mb-4" style="font-family: 'Cinzel Decorative', serif;">Archivo Documental</h2>
+    <h2>Búsqueda de Documentos</h2>
 
-    <form asp-action="Search" method="get" class="mb-4">
-        <div class="input-group">
-            <input type="text" name="busqueda" class="form-control" placeholder="Buscar por título...">
-            <button class="btn btn-luxe" type="submit">Buscar</button>
+    <form asp-controller="Author" asp-action="Search" method="get" class="row g-3 mb-4 align-items-end">
+        <div class="col-auto">
+            <label class="form-label">Categoría:</label>
+            <select name="categoryId" class="form-select">
+                <option value="">-- Todas --</option>
+                @foreach (var cat in (IEnumerable<QualityDocc.Domain.Entities.Category>)ViewBag.Categories)
+                {
+                    <option value="@cat.Id">@cat.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Filtrar</button>
         </div>
     </form>
 
-    <div class="card p-3" style="background-color: rgba(74, 55, 44, 0.5); border: 1px solid rgba(194, 179, 165, 0.2);">
-        <table class="table table-dark table-hover" style="background: transparent;">
-            <thead>
-                <tr style="color: var(--muted-champagne);">
-                    <th>Título</th>
-                    <th>Fecha</th>
-                    <th>Acciones</th>
+    <table class="table table-hover mt-3">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Categoría</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>QD-@item.Id</td>
+                    <td>@item.Title</td>
+                    <td>@(item.Category?.Name ?? "Sin categoría")</td>
+                    <td><span class="badge bg-warning text-dark">@item.WorkflowState</span></td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr>
-                        <td style="color: var(--champagne-ivory);">@item.Title</td>
-                        <td>@item.DateCreate?.ToString("dd/MM/yyyy")</td>
-                        <td>
-                            <a href="#" class="btn btn-sm btn-outline-light">Ver</a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+            }
+        </tbody>
+    </table>
 </div>

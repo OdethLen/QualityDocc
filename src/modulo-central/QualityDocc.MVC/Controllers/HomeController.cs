@@ -69,7 +69,7 @@ namespace QualityDocc.MVC.Controllers
                 // Ejecutamos la lógica de aprobación normativa con notas obligatorias
                 var approvedVersion = await _documentService.ApproveDocumentAsync(documentId, approvalNotes, mockUserId);
 
-                TempData["SuccessMessage"] = $"¡Documento aprobado normativamente! Estado fijado en: {approvedVersion.LifecycleStatus}.";
+                TempData["SuccessMessage"] = "¡Documento aprobado normativamente!";
             }
             catch (Exception ex)
             {

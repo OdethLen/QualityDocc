@@ -335,7 +335,7 @@
                 </div>
 
                 <form asp-controller="Auth" asp-action="Login" method="post">
-                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState.Values.Any(v => v.Errors.Any()))
+                    @if (!ViewData.ModelState.IsValid)
                     {
                         <div class="alert alert-danger" role="alert">
                             <div asp-validation-summary="All" class="list-unstyled mb-0"></div>
@@ -379,6 +379,17 @@
                 const openAccessBtn = document.getElementById('access-btn');
                 const closeLoginBtn = document.getElementById('close-login-btn');
                 const body = document.body;
+
+                // --- CORRECCIÓN: Detección automática de errores ---
+                // Si el modelo tiene errores, abrimos el modal inmediatamente al cargar
+                @if (!ViewData.ModelState.IsValid)
+                {
+                        <text>
+                            loginOverlay.classList.remove('d-none');
+                            setTimeout(() => { loginOverlay.classList.add('show'); }, 10);
+                            body.classList.add('login-open');
+                        </text>
+                }
 
                 function openLogin() {
                     loginOverlay.classList.remove('d-none');
