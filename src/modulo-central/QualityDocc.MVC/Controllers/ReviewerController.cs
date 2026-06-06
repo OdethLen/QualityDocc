@@ -66,6 +66,7 @@ namespace QualityDocc.MVC.Controllers
         }
 
         // --- PROCESAMIENTO DE LA DECISIÓN ---
+        // --- PROCESAMIENTO DE LA DECISIÓN ---
         [HttpPost]
         public async Task<IActionResult> ProcessReview(int id, string actionType, string notes)
         {
@@ -77,9 +78,22 @@ namespace QualityDocc.MVC.Controllers
 
             if (actionType == "Aprobar")
             {
-                // Cambia estado a Aprobado (2)
+                // 1. Cambia estado a Aprobado (2)
                 doc.WorkflowState = (DocumentStatus)2;
                 doc.RejectionNotes = null; // Limpiamos notas si lo aprueba
+
+                // 👇 2. MAGIA PARA LA VERSIÓN: Subimos a 1.0 (o 2.0, 3.0...) 👇
+                var lastVersion = await _context.DocumentVersion
+                    .Where(v => v.DocumentId == id)
+                    .OrderByDescending(v => v.VersionNumber)
+                    .FirstOrDefaultAsync();
+
+                if (lastVersion != null)
+                {
+                    // Math.Floor quita los decimales. Ej: 0.2 se vuelve 0. Al sumar 1.0, queda 1.0.
+                    lastVersion.VersionNumber = Math.Floor(lastVersion.VersionNumber) + 1.0;
+                }
+                // 👆 FIN DE LA MAGIA 👆
             }
             else if (actionType == "Rechazar")
             {

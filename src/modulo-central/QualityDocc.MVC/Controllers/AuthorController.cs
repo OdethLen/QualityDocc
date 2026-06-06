@@ -92,22 +92,42 @@ namespace QualityDocc.MVC.Controllers
                 var document = await _context.Document.FindAsync(id);
 
                 // Verificación de seguridad: que exista y que pertenezca al autor logueado
-                if (document == null || document.AuthorId != currentUserId) return NotFound();
+                // 🌟 CASO A: SI TRAE UN ID, VAMOS A CORREGIR UN DOCUMENTO EXISTENTE
+                if (id.HasValue && id > 0)
+                {
+                    // Buscamos el documento original en la base de datos
+                    var docEncontrado = await _context.Document.FindAsync(id);
 
-                // Buscamos la última versión registrada de este documento en el historial
-                var lastVersion = await _context.DocumentVersion
-                    .Where(v => v.DocumentId == id)
-                    .OrderByDescending(v => v.VersionNumber)
-                    .FirstOrDefaultAsync();
+                    // Verificación de seguridad 1
+                    if (docEncontrado == null) return NotFound();
 
-                // Lógica de incremento automático: si existía la 0.1, sugerimos la 0.2
-                double nextVersion = lastVersion != null ? lastVersion.VersionNumber + 0.1 : 0.1;
+                    // 👇 AQUÍ ES DONDE PONEMOS LO NUEVO 👇
+                    // Verificación de seguridad 2: que pertenezca al autor logueado
+                    if (document.AuthorId != currentUserId)
+                    {
+                        // Guardamos el mensaje de error para mostrarlo en la vista
+                        TempData["ErrorMessage"] = "Acceso denegado: No tienes permiso para editar un documento que le pertenece a otro autor.";
 
-                // Redondeamos a un decimal para evitar errores de precisión de punto flotante (ej: 0.200000004)
-                ViewBag.SuggestedVersion = Math.Round(nextVersion, 1);
+                        // Lo regresamos a la pantalla de búsqueda
+                        return RedirectToAction("Search");
+                    }
+                    // 👆 HASTA AQUÍ LO NUEVO 👆
 
-                // Pasamos el documento encontrado a la vista para que los inputs se rellenen solos
-                return View(document);
+                    // Buscamos la última versión registrada de este documento en el historial
+                    var lastVersion = await _context.DocumentVersion
+                        .Where(v => v.DocumentId == id)
+                        .OrderByDescending(v => v.VersionNumber)
+                        .FirstOrDefaultAsync();
+
+                    // Lógica de incremento automático: si existía la 0.1, sugerimos la 0.2
+                    double nextVersion = lastVersion != null ? lastVersion.VersionNumber + 0.1 : 0.1;
+
+                    // Redondeamos a un decimal para evitar errores de precisión de punto flotante (ej: 0.200000004)
+                    ViewBag.SuggestedVersion = Math.Round(nextVersion, 1);
+
+                    // Pasamos el documento encontrado a la vista para que los inputs se rellenen solos
+                    return View(document);
+                }
             }
 
             // 🌟 CASO B: SI NO TRAE ID, ES UN DOCUMENTO COMPLETAMENTE NUEVO

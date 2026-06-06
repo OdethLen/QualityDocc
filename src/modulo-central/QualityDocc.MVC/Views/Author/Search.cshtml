@@ -3,6 +3,14 @@
 <div class="container mt-4">
     <h2>Búsqueda de Documentos</h2>
 
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong><i class="bi bi-exclamation-triangle-fill"></i> ¡Alto ahí!</strong> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <form asp-controller="Author" asp-action="Search" method="get" class="row g-3 mb-4 align-items-end">
         <div class="col-auto">
             <label class="form-label">Categoría:</label>
@@ -26,6 +34,7 @@
                 <th>Título</th>
                 <th>Categoría</th>
                 <th>Estado</th>
+                <th scope="col">Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -33,7 +42,9 @@
             {
                 <tr>
                     <td>QD-@item.Id</td>
+
                     <td>@item.Title</td>
+
                     <td>@(item.Category?.Name ?? "Sin categoría")</td>
 
                     <td>
@@ -44,6 +55,21 @@
                         else
                         {
                             <span class="badge bg-warning text-dark">@item.WorkflowState</span>
+                        }
+                    </td>
+
+                    <td>
+                        @if ((int)item.WorkflowState != 1)
+                        {
+                            <a asp-controller="Author" asp-action="Upload" asp-route-id="@item.Id" class="btn btn-sm text-white" style="background-color: #9D9167;" title="Editar Documento">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="text-muted" title="Bloqueado: En revisión por el autorizador">
+                                <i class="bi bi-lock-fill"></i>
+                            </span>
                         }
                     </td>
                 </tr>
