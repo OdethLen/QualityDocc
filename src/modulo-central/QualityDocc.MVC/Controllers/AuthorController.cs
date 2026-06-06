@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System;
 using QualityDocc.Domain.Entities;
 using QualityDocc.Infrastructure.Data;
+using QualityDocc.MVC.Models.ViewModels;
 
 namespace QualityDoc.MVC.Controllers
 {
@@ -23,26 +24,72 @@ namespace QualityDoc.MVC.Controllers
             _environment = environment;
         }
 
-        public IActionResult Index()
+        // Ejemplo de la acción en tu AuthorController
+
+        public async Task<IActionResult> Index()
         {
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var currentUsername = User.Identity?.Name;
 
-            // Convertimos a int (asegúrate de que tu Id sea int)
-            int currentUserId = int.Parse(userIdString);
+            if (string.IsNullOrEmpty(currentUsername))
+            {
+                return RedirectToAction("Login", "Account");
+            }
 
-            // FILTRO CRÍTICO: .Where(d => d.AuthorId == currentUserId)
-            // Esto asegura que solo traiga lo que le pertenece al usuario actual
-            var misDocumentos = _context.Document
-                                        .Where(d => d.AuthorId == currentUserId)
-                                        .ToList();
+            // 1. CORRECCIÓN: Usar _context.User (en singular) en lugar de _context.Users
+            // Modificamos esta línea para que busque por Username O por Email
+            var currentUser = _context.User.FirstOrDefault(u => u.Username == currentUsername || u.Email == currentUsername);
+            if (currentUser == null)
+            {
+                // Esto te mostrará en la pantalla blanca exactamente qué texto tiene la sesión
+                return NotFound($"Usuario no encontrado. El sistema está buscando: '{currentUsername}'");
+            }
 
-            return View(misDocumentos);
+            // 2. Consultas usando AuthorId, Status == true y WorkflowState
+            var totalBorradores = _context.Document
+                .Count(d => d.AuthorId == currentUser.Id && d.Status == true && (int)d.WorkflowState == 0);
+
+            var totalAprobados = _context.Document
+                .Count(d => d.AuthorId == currentUser.Id && d.Status == true && (int)d.WorkflowState == 2);
+
+            // ¡NUEVO!: Consulta para contar los documentos Devueltos (Asumimos que WorkflowState == 3)
+            var totalDevueltos = _context.Document
+                .Count(d => d.AuthorId == currentUser.Id && d.Status == true && (int)d.WorkflowState == 3);
+
+            // 3. CORRECCIÓN: Usar DateCreate en el OrderByDescending
+            var ultimosArchivos = _context.Document
+                .Where(d => d.AuthorId == currentUser.Id)
+                .OrderByDescending(d => d.DateCreate)
+                .Take(6)
+                .ToList();
+
+            // 4. Pasamos todos los datos, incluyendo TotalDevueltos, a la vista
+            var viewModel = new AuthorDashboardViewModel
+            {
+                TotalBorradores = totalBorradores,
+                TotalAprobados = totalAprobados,
+                TotalDevueltos = totalDevueltos, // <- Agregado aquí
+                UltimosBorradores = ultimosArchivos
+            };
+
+            return View(viewModel);
         }
 
         [HttpGet]
-        public IActionResult Upload()
+        public async Task<IActionResult> Upload()
         {
-            ViewBag.Categories = _context.Category.ToList();
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int currentUserId = int.Parse(userIdString);
+
+            // Buscamos al usuario e incluimos su empresa
+            var user = await _context.User.Include(u => u.Company).FirstOrDefaultAsync(u => u.Id == currentUserId);
+
+            if (user == null) return NotFound();
+
+            // Pasamos la información a la vista
+            ViewBag.Categories = await _context.Category.ToListAsync();
+            ViewBag.CompanyName = user.Company.Name; // Para mostrar el nombre al usuario
+            ViewBag.CompanyId = user.CompanyId;       // Para usarlo internamente
+
             return View();
         }
 
@@ -58,44 +105,56 @@ namespace QualityDoc.MVC.Controllers
                 return View(model);
             }
 
-            // --- CORRECCIÓN 1: Captura automática de extensión ---
             string extension = Path.GetExtension(archivo.FileName).ToLower();
 
-            // --- CORRECCIÓN 2: Obtener usuario real ---
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             int currentUserId = int.Parse(userIdString);
 
             var uniqueFileName = Guid.NewGuid().ToString() + extension;
             var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads");
-
-            // --- TRUCO: Guardamos la ruta en una variable para mostrarla si algo falla ---
             var filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
-                    // ... (Tu lógica de guardado de Documento sigue igual) ...
+                    // 1. PREPARA EL DOCUMENTO Y LLENA LOS DATOS DE AUDITORÍA
                     model.AuthorId = currentUserId;
-                    // ... (resto de tu lógica) ...
+                    model.DateCreate = DateTime.Now; // ¡Evita el error de nulos!
+                    model.Status = true;             // Usando tu bit de Status activo
 
-                    // --- CORRECCIÓN 3: Guardar Extension e IdUserCreate ---
+                    // Revisamos qué botón presionó el usuario
+                    if (action == "save")
+                    {
+                        // Guardar Borrador
+                        model.WorkflowState = DocumentStatus.Borrador; // Asegúrate de que el Enum corresponda (ej. 0)
+                    }
+                    else
+                    {
+                        // Enviar al Autorizador
+                        model.WorkflowState = DocumentStatus.Revision; // Asegúrate de que el Enum corresponda (ej. 1)
+                    }
+
+                    _context.Document.Add(model);
+                    await _context.SaveChangesAsync();
+
+                    // 2. GUARDA LA VERSIÓN
                     var version = new DocumentVersion
                     {
                         DocumentId = model.Id,
                         VersionNumber = versionNumber,
                         FileUrl = "/uploads/" + uniqueFileName,
-                        Extension = extension,           // <--- AHORA SE GUARDA
-                        IdUserCreate = currentUserId,    // <--- AHORA SE GUARDA
+                        Extension = extension,
+                        IdUserCreate = currentUserId,
                         DateCreate = DateTime.Now,
                         ChangeLog = Request.Form["ChangeLog"]
                     };
+
                     _context.DocumentVersion.Add(version);
                     await _context.SaveChangesAsync();
 
-                    // Guardado físico
+                    // 3. GUARDADO FÍSICO DEL ARCHIVO
                     if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-
                     using (var stream = new FileStream(filePath, FileMode.Create))
                     {
                         await archivo.CopyToAsync(stream);
@@ -107,7 +166,6 @@ namespace QualityDoc.MVC.Controllers
                 {
                     await transaction.RollbackAsync();
 
-                    // ESTO NOS DIRÁ EL ERROR REAL DE LA BASE DE DATOS
                     string errorMessage = ex.Message;
                     if (ex.InnerException != null)
                     {

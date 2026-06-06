@@ -7,6 +7,8 @@ namespace QualityDocc.Domain.Entities
         // Ya no necesitamos el Id aquí, se hereda de BaseEntity
 
         public string Email { get; set; } = string.Empty;
+
+        public string Username { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
 
         // Relación con Role
