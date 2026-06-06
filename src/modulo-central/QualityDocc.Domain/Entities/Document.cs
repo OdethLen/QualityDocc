@@ -8,6 +8,7 @@ namespace QualityDocc.Domain.Entities
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; } = string.Empty;
 
+        [ForeignKey("AuthorId")]
         public int AuthorId { get; set; }
         public int CompanyId { get; set; }
         public int CategoryId { get; set; }

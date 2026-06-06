@@ -3,9 +3,7 @@
 @{
     Layout = "~/Views/Shared/_LayoutDashboard.cshtml";
 }
-
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-
 <style>
     /* Fondo general para igualar el Home */
     .dashboard-bg {
@@ -51,7 +49,7 @@
             box-shadow: 0 0 0 0.2rem rgba(157, 145, 103, 0.25);
         }
 
-    /* Zona de arrastrar y soltar */
+    /* Zona de arrastrar y soltar (INTACTA) */
     .drop-zone {
         width: 100%;
         height: 180px;
@@ -139,8 +137,10 @@
                 <div class="upload-card">
                     <h2 class="upload-title"><i class="bi bi-cloud-arrow-up me-2" style="color: #9D9167;"></i>Subir Documento</h2>
 
-                    <form asp-action="Upload" method="post" enctype="multipart/form-data">
-                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <form id="uploadForm" asp-action="Upload" method="post" enctype="multipart/form-data">
+
+                        <input type="hidden" asp-for="Id" />
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                         <div class="mb-4">
                             <label class="form-label custom-label">Título</label>
@@ -195,10 +195,31 @@
                                 <button type="submit" name="action" value="save" class="btn btn-save-draft w-100 py-2">Guardar Borrador</button>
                             </div>
                             <div class="col-sm-6">
-                                <button type="submit" name="action" value="submit" class="btn btn-submit-auth w-100 py-2">Enviar al Autorizador</button>
+                                <button type="submit" id="btnSubmitAuth" name="action" value="submit" class="btn btn-submit-auth w-100 py-2">Enviar al Autorizador</button>
                             </div>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="progressModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 15px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <div class="modal-body text-center p-5">
+                <i class="bi bi-cloud-arrow-up mb-3" id="modalIcon" style="font-size: 3.5rem; color: #9D9167;"></i>
+                <h4 id="modalText" style="color: #534B31; font-weight: 700; margin-bottom: 1.5rem;">Preparando documento...</h4>
+
+                <div class="progress" style="height: 25px; border-radius: 12px; background-color: #F8F4EC;">
+                    <div id="dynamicProgressBar"
+                         class="progress-bar progress-bar-striped progress-bar-animated"
+                         role="progressbar"
+                         style="width: 0%; background-color: #9D9167; font-weight: bold; font-size: 1rem;"
+                         aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                        0%
+                    </div>
                 </div>
             </div>
         </div>
@@ -212,7 +233,6 @@
         }
     }
 
-    // Lógica de versión con límite de 0.1
     function changeVersion(amount) {
         let input = document.getElementById('versionDisplay');
         let currentVal = parseFloat(input.value);
@@ -222,4 +242,81 @@
             input.value = newVal.toFixed(1);
         }
     }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        // Buscamos el botón por su ID. ¡Asegúrate de que tu botón tenga id="btnSubmitAuth"!
+        const submitAuthBtn = document.getElementById('btnSubmitAuth');
+
+        if (submitAuthBtn) {
+            submitAuthBtn.addEventListener('click', function (e) {
+                const form = document.getElementById('uploadForm');
+                const fileInput = document.getElementById('fileInput');
+
+                // 1. Validamos manualmente el archivo oculto primero
+                if (fileInput.files.length === 0) {
+                    e.preventDefault();
+                    alert("⚠️ Por favor, selecciona un documento (PDF o DOCX) en la zona de carga.");
+                    return; // Detenemos el proceso aquí
+                }
+
+                // 2. Validamos el resto de los campos visibles (Título, Categoría, etc.)
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+
+                // Si todo está lleno, detenemos el envío brusco para mostrar la animación
+                e.preventDefault();
+                console.log("Formulario válido. Iniciando animación...");
+
+                try {
+                    // 3. Insertamos la acción que C# necesita
+                    let hiddenAction = document.createElement('input');
+                    hiddenAction.type = 'hidden';
+                    hiddenAction.name = 'action';
+                    hiddenAction.value = 'submit';
+                    form.appendChild(hiddenAction);
+
+                    // 4. Invocamos la ventana modal de Bootstrap
+                    let progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
+                    progressModal.show();
+
+                    // 5. Animación de la barra de progreso
+                    let bar = document.getElementById('dynamicProgressBar');
+                    let text = document.getElementById('modalText');
+                    let icon = document.getElementById('modalIcon');
+                    let width = 0;
+
+                    let interval = setInterval(function () {
+                        width += 4;
+                        bar.style.width = width + '%';
+                        bar.setAttribute('aria-valuenow', width);
+                        bar.innerText = width + '%';
+
+                        if (width >= 100) {
+                            clearInterval(interval);
+
+                            text.innerText = "¡Enviado al revisor!";
+                            text.style.color = "#7A704F";
+                            bar.classList.remove('progress-bar-animated', 'progress-bar-striped');
+                            bar.style.backgroundColor = "#534B31";
+                            icon.className = "bi bi-check-circle-fill mb-3";
+                            icon.style.color = "#534B31";
+
+                            // 6. Enviamos el formulario al servidor después de 1 segundo
+                            setTimeout(() => {
+                                form.submit();
+                            }, 1000);
+                        }
+                    }, 80);
+                } catch (error) {
+                    console.error("Error al cargar la ventana modal de Bootstrap:", error);
+                    // Si falla el diseño de la ventana, forzamos el envío de todos modos para que no te quedes atascada
+                    form.submit();
+                }
+            });
+        } else {
+            console.error("El botón no fue encontrado en el DOM. Revisa que tenga el id correcto.");
+        }
+    });
 </script>

@@ -10,9 +10,12 @@ using System;
 using QualityDocc.Domain.Entities;
 using QualityDocc.Infrastructure.Data;
 using QualityDocc.MVC.Models.ViewModels;
+using Microsoft.AspNetCore.Authorization; // 👇 1. Nueva librería de seguridad
 
-namespace QualityDoc.MVC.Controllers
+namespace QualityDocc.MVC.Controllers
 {
+    // 👇 2. El candado que protege el controlador completo
+    [Authorize(Roles = "Author")]
     public class AuthorController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -24,8 +27,7 @@ namespace QualityDoc.MVC.Controllers
             _environment = environment;
         }
 
-        // Ejemplo de la acción en tu AuthorController
-
+        [HttpGet]
         public async Task<IActionResult> Index()
         {
             var currentUsername = User.Identity?.Name;
@@ -35,39 +37,32 @@ namespace QualityDoc.MVC.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // 1. CORRECCIÓN: Usar _context.User (en singular) en lugar de _context.Users
-            // Modificamos esta línea para que busque por Username O por Email
             var currentUser = _context.User.FirstOrDefault(u => u.Username == currentUsername || u.Email == currentUsername);
             if (currentUser == null)
             {
-                // Esto te mostrará en la pantalla blanca exactamente qué texto tiene la sesión
                 return NotFound($"Usuario no encontrado. El sistema está buscando: '{currentUsername}'");
             }
 
-            // 2. Consultas usando AuthorId, Status == true y WorkflowState
             var totalBorradores = _context.Document
                 .Count(d => d.AuthorId == currentUser.Id && d.Status == true && (int)d.WorkflowState == 0);
 
             var totalAprobados = _context.Document
                 .Count(d => d.AuthorId == currentUser.Id && d.Status == true && (int)d.WorkflowState == 2);
 
-            // ¡NUEVO!: Consulta para contar los documentos Devueltos (Asumimos que WorkflowState == 3)
             var totalDevueltos = _context.Document
                 .Count(d => d.AuthorId == currentUser.Id && d.Status == true && (int)d.WorkflowState == 3);
 
-            // 3. CORRECCIÓN: Usar DateCreate en el OrderByDescending
             var ultimosArchivos = _context.Document
                 .Where(d => d.AuthorId == currentUser.Id)
                 .OrderByDescending(d => d.DateCreate)
                 .Take(6)
                 .ToList();
 
-            // 4. Pasamos todos los datos, incluyendo TotalDevueltos, a la vista
             var viewModel = new AuthorDashboardViewModel
             {
                 TotalBorradores = totalBorradores,
                 TotalAprobados = totalAprobados,
-                TotalDevueltos = totalDevueltos, // <- Agregado aquí
+                TotalDevueltos = totalDevueltos,
                 UltimosBorradores = ultimosArchivos
             };
 
@@ -87,12 +82,11 @@ namespace QualityDoc.MVC.Controllers
 
             // Pasamos la información a la vista
             ViewBag.Categories = await _context.Category.ToListAsync();
-            ViewBag.CompanyName = user.Company.Name; // Para mostrar el nombre al usuario
-            ViewBag.CompanyId = user.CompanyId;       // Para usarlo internamente
+            ViewBag.CompanyName = user.Company.Name;
+            ViewBag.CompanyId = user.CompanyId;
 
             return View();
         }
-
 
         [HttpPost]
         public async Task<IActionResult> Upload(Document model, IFormFile archivo, string action, double versionNumber)
@@ -102,6 +96,9 @@ namespace QualityDoc.MVC.Controllers
             if (archivo == null || archivo.Length == 0)
             {
                 ModelState.AddModelError("", "Por favor selecciona un archivo.");
+                // Como recargamos la vista, necesitamos los datos de la empresa de nuevo
+                var userError = await _context.User.Include(u => u.Company).FirstOrDefaultAsync(u => u.Id == model.AuthorId);
+                ViewBag.CompanyName = userError?.Company?.Name;
                 return View(model);
             }
 
@@ -120,22 +117,30 @@ namespace QualityDoc.MVC.Controllers
                 {
                     // 1. PREPARA EL DOCUMENTO Y LLENA LOS DATOS DE AUDITORÍA
                     model.AuthorId = currentUserId;
-                    model.DateCreate = DateTime.Now; // ¡Evita el error de nulos!
-                    model.Status = true;             // Usando tu bit de Status activo
+                    model.Status = true;
 
                     // Revisamos qué botón presionó el usuario
                     if (action == "save")
                     {
-                        // Guardar Borrador
-                        model.WorkflowState = DocumentStatus.Borrador; // Asegúrate de que el Enum corresponda (ej. 0)
+                        model.WorkflowState = DocumentStatus.Borrador;
                     }
                     else
                     {
-                        // Enviar al Autorizador
-                        model.WorkflowState = DocumentStatus.Revision; // Asegúrate de que el Enum corresponda (ej. 1)
+                        model.WorkflowState = DocumentStatus.Revision;
                     }
 
-                    _context.Document.Add(model);
+                    // 👇 3. LÓGICA DE AGREGAR VS ACTUALIZAR (Para no duplicar borradores)
+                    if (model.Id == 0)
+                    {
+                        model.DateCreate = DateTime.Now;
+                        _context.Document.Add(model);
+                    }
+                    else
+                    {
+                        // Si el ID ya existe, actualizamos el registro
+                        _context.Document.Update(model);
+                    }
+
                     await _context.SaveChangesAsync();
 
                     // 2. GUARDA LA VERSIÓN
@@ -173,35 +178,69 @@ namespace QualityDoc.MVC.Controllers
                     }
 
                     ModelState.AddModelError("", "Error: " + errorMessage);
+
+                    var userEx = await _context.User.Include(u => u.Company).FirstOrDefaultAsync(u => u.Id == currentUserId);
+                    ViewBag.CompanyName = userEx?.Company?.Name;
+
                     return View(model);
                 }
             }
 
-            TempData["Message"] = "Documento procesado correctamente.";
+            // 👇 4. LA DECISIÓN DE REDIRECCIÓN
+            if (action == "save")
+            {
+                // Volvemos a cargar la información de la empresa porque recargaremos la misma pantalla
+                var user = await _context.User.Include(u => u.Company).FirstOrDefaultAsync(u => u.Id == currentUserId);
+                ViewBag.CompanyName = user?.Company?.Name;
+                ViewBag.CompanyId = user?.CompanyId;
+
+                TempData["Message"] = "Borrador guardado. Puedes seguir editando y luego enviarlo.";
+                return View(model);
+            }
+
+            // Si presionó Enviar
+            TempData["Message"] = "Documento enviado al Autorizador correctamente.";
             return RedirectToAction("Index");
         }
 
         [HttpGet]
         public async Task<IActionResult> Search(int? categoryId)
         {
-            // 1. Cargamos las categorías para el menú desplegable (filtro)
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            int currentUserId = string.IsNullOrEmpty(userIdString) ? 0 : int.Parse(userIdString);
+
             ViewBag.Categories = await _context.Category.ToListAsync();
 
-            // 2. Iniciamos la consulta base, incluyendo la tabla Category para evitar nulos
             var query = _context.Document
                                 .Include(d => d.Category)
                                 .AsQueryable();
 
-            // 3. Si el usuario seleccionó una categoría, filtramos la consulta
             if (categoryId.HasValue && categoryId > 0)
             {
                 query = query.Where(d => d.CategoryId == categoryId);
             }
 
-            // 4. Ejecutamos la consulta y enviamos la lista a la vista
+            query = query.Where(d =>
+                (int)d.WorkflowState == 2 ||
+                d.AuthorId == currentUserId
+            );
+
             var documentos = await query.ToListAsync();
             return View(documentos);
         }
 
+        [HttpPost]
+        public async Task<IActionResult> SendToReview(int documentId)
+        {
+            var doc = await _context.Document.FindAsync(documentId);
+
+            if (doc != null && (int)doc.WorkflowState == 0)
+            {
+                doc.WorkflowState = (DocumentStatus)1;
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction("Index");
+        }
     }
 }

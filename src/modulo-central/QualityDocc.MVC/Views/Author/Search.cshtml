@@ -35,7 +35,17 @@
                     <td>QD-@item.Id</td>
                     <td>@item.Title</td>
                     <td>@(item.Category?.Name ?? "Sin categoría")</td>
-                    <td><span class="badge bg-warning text-dark">@item.WorkflowState</span></td>
+
+                    <td>
+                        @if ((int)item.WorkflowState == 2 || item.WorkflowState.ToString() == "Autorizado")
+                        {
+                            <span class="badge bg-success">Autorizado</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark">@item.WorkflowState</span>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>
