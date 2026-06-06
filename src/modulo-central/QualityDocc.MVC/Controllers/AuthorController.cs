@@ -70,22 +70,49 @@ namespace QualityDocc.MVC.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Upload()
+        public async Task<IActionResult> Upload(int? id)
         {
+            // 1. Obtenemos el usuario actual y los datos de su empresa
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString)) return RedirectToAction("Login", "Account");
             int currentUserId = int.Parse(userIdString);
 
-            // Buscamos al usuario e incluimos su empresa
             var user = await _context.User.Include(u => u.Company).FirstOrDefaultAsync(u => u.Id == currentUserId);
-
             if (user == null) return NotFound();
 
-            // Pasamos la información a la vista
+            // 2. Llenamos los ViewBags necesarios para los dropdowns y etiquetas de la vista
             ViewBag.Categories = await _context.Category.ToListAsync();
-            ViewBag.CompanyName = user.Company.Name;
+            ViewBag.CompanyName = user.Company?.Name;
             ViewBag.CompanyId = user.CompanyId;
 
-            return View();
+            // 🌟 CASO A: SI TRAE UN ID, VAMOS A CORREGIR UN DOCUMENTO EXISTENTE
+            if (id.HasValue && id > 0)
+            {
+                // Buscamos el documento original en la base de datos
+                var document = await _context.Document.FindAsync(id);
+
+                // Verificación de seguridad: que exista y que pertenezca al autor logueado
+                if (document == null || document.AuthorId != currentUserId) return NotFound();
+
+                // Buscamos la última versión registrada de este documento en el historial
+                var lastVersion = await _context.DocumentVersion
+                    .Where(v => v.DocumentId == id)
+                    .OrderByDescending(v => v.VersionNumber)
+                    .FirstOrDefaultAsync();
+
+                // Lógica de incremento automático: si existía la 0.1, sugerimos la 0.2
+                double nextVersion = lastVersion != null ? lastVersion.VersionNumber + 0.1 : 0.1;
+
+                // Redondeamos a un decimal para evitar errores de precisión de punto flotante (ej: 0.200000004)
+                ViewBag.SuggestedVersion = Math.Round(nextVersion, 1);
+
+                // Pasamos el documento encontrado a la vista para que los inputs se rellenen solos
+                return View(document);
+            }
+
+            // 🌟 CASO B: SI NO TRAE ID, ES UN DOCUMENTO COMPLETAMENTE NUEVO
+            ViewBag.SuggestedVersion = 0.1;
+            return View(new Document()); // Pasamos un objeto vacío listo para llenarse
         }
 
         [HttpPost]
@@ -194,6 +221,8 @@ namespace QualityDocc.MVC.Controllers
                 ViewBag.CompanyName = user?.Company?.Name;
                 ViewBag.CompanyId = user?.CompanyId;
 
+                ModelState.Clear(); //Evitar duplicados
+
                 TempData["Message"] = "Borrador guardado. Puedes seguir editando y luego enviarlo.";
                 return View(model);
             }
@@ -241,6 +270,27 @@ namespace QualityDocc.MVC.Controllers
             }
 
             return RedirectToAction("Index");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Returned()
+        {
+            // 1. Obtenemos el ID del usuario autenticado actual
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString)) return RedirectToAction("Login", "Account");
+            int currentUserId = int.Parse(userIdString);
+
+            // 2. Traemos de la base de datos los documentos devueltos
+            // NOTA: Si tu propiedad de estado se llama diferente a "WorkflowState", cámbiala aquí.
+            // El número 3 representa el estado 'Devuelto' o 'Rechazado por Revisor'.
+            var devueltos = await _context.Document
+                .Include(d => d.Category) // Cargamos la categoría para mostrar su nombre
+                .Where(d => d.AuthorId == currentUserId && (int)d.WorkflowState == 3)
+                .OrderByDescending(d => d.DateCreate)
+                .ToListAsync();
+
+            // 3. Enviamos la lista de documentos a la vista Returned.cshtml
+            return View(devueltos);
         }
     }
 }
