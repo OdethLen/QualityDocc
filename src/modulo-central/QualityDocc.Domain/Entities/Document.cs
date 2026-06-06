@@ -4,6 +4,7 @@ namespace QualityDocc.Domain.Entities
 {
     public class Document : BaseEntity
     {
+        //Hi
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; } = string.Empty;
 
